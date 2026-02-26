@@ -1,0 +1,23 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# SQLite database
+*.db
+*.db-wal
+*.db-shm
+backend/app/data/
+
+# React build output (populated at build time)
+backend/app/static/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS files
+.DS_Store
