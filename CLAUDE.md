@@ -29,7 +29,8 @@ travel-time/
 │   └── app/
 │       ├── api.py              # FastAPI app + serves built React files
 │       ├── scheduler.py        # APScheduler entry point (runs every 10 min)
-│       ├── db.py               # SQLite with WAL mode, CRUD for settings + check_log
+│       ├── db.py               # SQLite with WAL mode, CRUD for monitors + check_log
+│       ├── core.py             # Shared check-and-alert logic (used by api + scheduler)
 │       ├── traffic.py          # Google Maps Distance Matrix API
 │       ├── notify.py           # Pushover API
 │       └── static/             # React build output (populated at build time)
@@ -41,14 +42,15 @@ travel-time/
         ├── main.jsx
         ├── App.jsx
         └── components/
-            ├── SettingsForm.jsx
+            ├── MonitorList.jsx
+            ├── MonitorForm.jsx
             └── CheckLog.jsx
 ```
 
 ## Database (SQLite)
 
-- **`settings`** — single row (id=1), always upserted. Fields: `origin`, `destination`, `active`, `mode` (`travel_time`|`arrive_time`), `alert_threshold_minutes`, `arrive_by` (unix ts), `buffer_minutes`.
-- **`check_log`** — append-only. Fields: `checked_at` (unix ts), `travel_minutes` (real), `alerted` (bool).
+- **`monitors`** — one row per monitor. Fields: `name` (optional label), `origin`, `destination`, `active`, `mode` (`travel_time`|`arrive_time`), `alert_threshold_minutes`, `arrive_by` (unix ts), `buffer_minutes`.
+- **`check_log`** — append-only. Fields: `monitor_id` (FK → monitors), `checked_at` (unix ts), `travel_minutes` (real), `alerted` (bool).
 - WAL mode enabled so API reads and scheduler writes don't block each other.
 - SQLite stores booleans as INTEGER 0/1 — cast to `bool` in Python.
 
@@ -56,19 +58,23 @@ travel-time/
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/settings` | Get current settings |
-| `PUT` | `/api/settings` | Update settings (all fields optional) |
-| `GET` | `/api/checks` | Recent check log (`?limit=20`) |
-| `POST` | `/api/checks/trigger` | Manually trigger a check |
+| `GET` | `/api/monitors` | List all monitors |
+| `POST` | `/api/monitors` | Create a monitor |
+| `GET` | `/api/monitors/{id}` | Get one monitor |
+| `PUT` | `/api/monitors/{id}` | Update a monitor (all fields optional) |
+| `DELETE` | `/api/monitors/{id}` | Delete monitor + its logs |
+| `GET` | `/api/monitors/{id}/checks` | Check log for a monitor (`?limit=20`) |
+| `DELETE` | `/api/monitors/{id}/checks` | Clear check log for a monitor |
+| `POST` | `/api/monitors/{id}/checks/trigger` | Manually trigger a check for a monitor |
 | `GET` | `/*` | Serve React app (catch-all) |
 
 ## Scheduler Logic
 
-1. Read settings → skip if `active = false`
+1. Read all monitors → for each active monitor:
 2. Call Google Maps Distance Matrix API → `travel_minutes`
 3. Evaluate alert condition based on `mode`
 4. If triggered → send Pushover notification
-5. Append to `check_log`
+5. Append to `check_log` with `monitor_id`
 
 ## Build & Deploy
 

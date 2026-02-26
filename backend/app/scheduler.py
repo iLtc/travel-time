@@ -10,7 +10,7 @@ import logging
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from app.db import init_db
+from app.db import init_db, get_all_monitors
 from app.core import run_check
 
 logging.basicConfig(
@@ -21,21 +21,33 @@ log = logging.getLogger(__name__)
 
 
 def check_and_notify() -> None:
-    try:
-        result = asyncio.run(run_check())
-    except Exception:
-        log.exception("Check failed.")
+    monitors = get_all_monitors()
+    active = [m for m in monitors if m.active]
+
+    if not active:
+        log.info("No active monitors — skipping.")
         return
 
-    if result is None:
-        log.info("Monitoring inactive or not configured — skipping.")
-        return
+    async def run_all():
+        for monitor in active:
+            label = monitor.name or f"#{monitor.id}"
+            try:
+                result = await run_check(monitor)
+            except Exception:
+                log.exception("Check failed for monitor %s.", label)
+                continue
 
-    log.info(
-        "Check logged — travel: %.1f min, alerted: %s",
-        result["travel_minutes"],
-        result["alerted"],
-    )
+            if result is None:
+                log.info("Monitor %s — inactive or not configured, skipping.", label)
+            else:
+                log.info(
+                    "Monitor %s — travel: %.1f min, alerted: %s",
+                    label,
+                    result["travel_minutes"],
+                    result["alerted"],
+                )
+
+    asyncio.run(run_all())
 
 
 def main() -> None:

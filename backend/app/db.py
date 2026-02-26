@@ -12,8 +12,10 @@ DB_PATH = os.getenv("DB_PATH", "/app/data/travel.db")
 # Models
 # ---------------------------------------------------------------------------
 
-class Settings(SQLModel, table=True):
-    id: int = Field(default=1, primary_key=True)
+class Monitor(SQLModel, table=True):
+    __tablename__ = "monitors"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = ""
     origin: str = ""
     destination: str = ""
     active: bool = False
@@ -26,6 +28,7 @@ class Settings(SQLModel, table=True):
 class CheckLog(SQLModel, table=True):
     __tablename__ = "check_log"
     id: Optional[int] = Field(default=None, primary_key=True)
+    monitor_id: int = Field(foreign_key="monitors.id")
     checked_at: int                     # unix timestamp
     travel_minutes: float
     alerted: bool = False
@@ -45,40 +48,64 @@ def _set_wal_mode(dbapi_conn, _):
 
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        if not session.get(Settings, 1):
-            session.add(Settings(id=1))
-            session.commit()
 
 
 # ---------------------------------------------------------------------------
-# Settings
+# Monitors
 # ---------------------------------------------------------------------------
 
-def get_settings() -> Settings | None:
+def get_all_monitors() -> list[Monitor]:
     with Session(engine) as session:
-        return session.get(Settings, 1)
+        return session.exec(select(Monitor)).all()
 
 
-def upsert_settings(data: dict) -> Settings:
+def get_monitor(id: int) -> Monitor | None:
     with Session(engine) as session:
-        settings = session.get(Settings, 1) or Settings(id=1)
-        for key, value in data.items():
-            if hasattr(settings, key) and key != "id":
-                setattr(settings, key, value)
-        session.add(settings)
+        return session.get(Monitor, id)
+
+
+def create_monitor(data: dict) -> Monitor:
+    with Session(engine) as session:
+        monitor = Monitor(**{k: v for k, v in data.items() if hasattr(Monitor, k)})
+        session.add(monitor)
         session.commit()
-        session.refresh(settings)
-        return settings
+        session.refresh(monitor)
+        return monitor
+
+
+def update_monitor(id: int, data: dict) -> Monitor | None:
+    with Session(engine) as session:
+        monitor = session.get(Monitor, id)
+        if not monitor:
+            return None
+        for key, value in data.items():
+            if hasattr(monitor, key) and key != "id":
+                setattr(monitor, key, value)
+        session.add(monitor)
+        session.commit()
+        session.refresh(monitor)
+        return monitor
+
+
+def delete_monitor(id: int) -> bool:
+    with Session(engine) as session:
+        monitor = session.get(Monitor, id)
+        if not monitor:
+            return False
+        session.exec(delete(CheckLog).where(CheckLog.monitor_id == id))
+        session.delete(monitor)
+        session.commit()
+        return True
 
 
 # ---------------------------------------------------------------------------
 # Check log
 # ---------------------------------------------------------------------------
 
-def append_check_log(travel_minutes: float, alerted: bool) -> None:
+def append_check_log(monitor_id: int, travel_minutes: float, alerted: bool) -> None:
     with Session(engine) as session:
         session.add(CheckLog(
+            monitor_id=monitor_id,
             checked_at=int(time.time()),
             travel_minutes=travel_minutes,
             alerted=alerted,
@@ -86,16 +113,17 @@ def append_check_log(travel_minutes: float, alerted: bool) -> None:
         session.commit()
 
 
-def get_check_log(limit: int = 20) -> list[CheckLog]:
+def get_check_log(monitor_id: int, limit: int = 20) -> list[CheckLog]:
     with Session(engine) as session:
         return session.exec(
             select(CheckLog)
+            .where(CheckLog.monitor_id == monitor_id)
             .order_by(col(CheckLog.checked_at).desc())
             .limit(limit)
         ).all()
 
 
-def clear_check_log() -> None:
+def clear_check_log(monitor_id: int) -> None:
     with Session(engine) as session:
-        session.exec(delete(CheckLog))
+        session.exec(delete(CheckLog).where(CheckLog.monitor_id == monitor_id))
         session.commit()
