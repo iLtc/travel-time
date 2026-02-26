@@ -4,7 +4,7 @@ Shared check-and-alert logic used by both the scheduler and the API.
 
 import time
 
-from app.db import Monitor, append_check_log
+from app.db import Monitor, append_check_log, get_app_setting
 from app.traffic import get_travel_minutes
 from app.notify import send_alert, build_message
 
@@ -27,15 +27,22 @@ async def run_check(monitor: Monitor) -> dict | None:
     Fetch travel time, evaluate alert condition, send notification if needed,
     and log the result.
 
-    Returns a dict with the result, or None if the monitor is incomplete.
+    Returns a dict with the result, or None if checks are globally disabled,
+    the monitor is inactive, or origin/destination are not configured.
     """
+    if get_app_setting("checks_enabled") == "false":
+        return None
+
     if not monitor.active:
         return None
 
-    if not monitor.origin or not monitor.destination:
+    origin = monitor.origin or get_app_setting("default_location") or ""
+    destination = monitor.destination
+
+    if not origin or not destination:
         return None
 
-    travel_minutes = await get_travel_minutes(monitor.origin, monitor.destination)
+    travel_minutes = await get_travel_minutes(origin, destination)
 
     alerted = False
     if should_alert(monitor, travel_minutes):

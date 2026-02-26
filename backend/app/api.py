@@ -21,6 +21,8 @@ from app.db import (
     delete_monitor,
     get_check_log,
     clear_check_log,
+    get_all_app_settings,
+    set_app_settings,
 )
 from app.core import run_check
 
@@ -62,6 +64,20 @@ class MonitorUpdate(BaseModel):
     alert_threshold_minutes: Optional[int] = None
     arrive_by: Optional[int] = None
     buffer_minutes: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# App settings routes
+# ---------------------------------------------------------------------------
+
+@app.get("/api/settings")
+def read_app_settings():
+    return get_all_app_settings()
+
+
+@app.put("/api/settings")
+def update_app_settings(body: dict):
+    return set_app_settings(body)
 
 
 # ---------------------------------------------------------------------------

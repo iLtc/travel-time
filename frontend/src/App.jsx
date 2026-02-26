@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import GlobalSettings from "./components/GlobalSettings";
 import MonitorList from "./components/MonitorList";
 import MonitorForm from "./components/MonitorForm";
 import CheckLog from "./components/CheckLog";
@@ -17,10 +18,16 @@ const styles = {
 };
 
 export default function App() {
+  const [appSettings, setAppSettings] = useState({});
   const [monitors, setMonitors] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [checks, setChecks] = useState([]);
   const [triggering, setTriggering] = useState(false);
+
+  const fetchAppSettings = useCallback(async () => {
+    const res = await fetch("/api/settings");
+    setAppSettings(await res.json());
+  }, []);
 
   const fetchMonitors = useCallback(async () => {
     const res = await fetch("/api/monitors");
@@ -34,14 +41,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    fetchAppSettings();
     fetchMonitors();
-  }, [fetchMonitors]);
+  }, [fetchAppSettings, fetchMonitors]);
 
   useEffect(() => {
     fetchChecks(selectedId);
     const interval = setInterval(() => fetchChecks(selectedId), 30_000);
     return () => clearInterval(interval);
   }, [selectedId, fetchChecks]);
+
+  const handleSaveAppSettings = async (updates) => {
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    setAppSettings(await res.json());
+  };
 
   const handleAdd = async () => {
     const res = await fetch("/api/monitors", {
@@ -91,6 +108,8 @@ export default function App() {
   return (
     <div style={styles.container}>
       <h1 style={styles.h1}>Travel Time Alerter</h1>
+
+      <GlobalSettings settings={appSettings} onSave={handleSaveAppSettings} />
 
       <MonitorList
         monitors={monitors}

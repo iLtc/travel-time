@@ -10,7 +10,7 @@ import logging
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from app.db import init_db, get_all_monitors
+from app.db import init_db, get_all_monitors, get_app_setting
 from app.core import run_check
 
 logging.basicConfig(
@@ -21,6 +21,10 @@ log = logging.getLogger(__name__)
 
 
 def check_and_notify() -> None:
+    if get_app_setting("checks_enabled") == "false":
+        log.info("Checks globally disabled — skipping.")
+        return
+
     monitors = get_all_monitors()
     active = [m for m in monitors if m.active]
 

@@ -25,6 +25,12 @@ class Monitor(SQLModel, table=True):
     buffer_minutes: Optional[int] = None
 
 
+class AppSettings(SQLModel, table=True):
+    __tablename__ = "app_settings"
+    key: str = Field(primary_key=True)
+    value: str = ""
+
+
 class CheckLog(SQLModel, table=True):
     __tablename__ = "check_log"
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -46,8 +52,19 @@ def _set_wal_mode(dbapi_conn, _):
     dbapi_conn.execute("PRAGMA journal_mode=WAL")
 
 
+_SETTING_DEFAULTS = {
+    "checks_enabled": "true",
+    "default_location": "",
+}
+
+
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        for key, value in _SETTING_DEFAULTS.items():
+            if not session.get(AppSettings, key):
+                session.add(AppSettings(key=key, value=value))
+        session.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -127,3 +144,29 @@ def clear_check_log(monitor_id: int) -> None:
     with Session(engine) as session:
         session.exec(delete(CheckLog).where(CheckLog.monitor_id == monitor_id))
         session.commit()
+
+
+# ---------------------------------------------------------------------------
+# App settings
+# ---------------------------------------------------------------------------
+
+def get_all_app_settings() -> dict:
+    with Session(engine) as session:
+        rows = session.exec(select(AppSettings)).all()
+        return {row.key: row.value for row in rows}
+
+
+def get_app_setting(key: str) -> str | None:
+    with Session(engine) as session:
+        row = session.get(AppSettings, key)
+        return row.value if row else None
+
+
+def set_app_settings(updates: dict) -> dict:
+    with Session(engine) as session:
+        for key, value in updates.items():
+            row = session.get(AppSettings, key) or AppSettings(key=key)
+            row.value = str(value)
+            session.add(row)
+        session.commit()
+    return get_all_app_settings()
