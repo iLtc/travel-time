@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -37,23 +37,26 @@ async def send_alert(travel_minutes: float, message: str) -> None:
 def build_message(travel_minutes: float, mode: str, **kwargs) -> str:
     """Build the notification message text based on alert mode."""
     minutes = round(travel_minutes)
+    tz = kwargs.get("timezone") or "America/New_York"
+    zone = ZoneInfo(tz)
+    leave_now_arrive_str = (datetime.now(tz=zone) + timedelta(minutes=travel_minutes)).strftime("%-I:%M %p %Z")
 
     if mode == "travel_time":
         threshold = kwargs.get("alert_threshold_minutes")
         return (
             f"Current travel time is {minutes} min "
-            f"(at or below your {threshold} min threshold). Leave now!"
+            f"(at or below your {threshold} min threshold). "
+            f"Leave now to arrive at {leave_now_arrive_str}!"
         )
 
     if mode == "arrive_time":
         arrive_by = kwargs.get("arrive_by")
         buffer = kwargs.get("buffer_minutes", 0)
-        tz = kwargs.get("timezone") or "America/New_York"
-        dt = datetime.fromtimestamp(arrive_by, tz=ZoneInfo(tz))
-        arrive_by_str = dt.strftime("%-I:%M %p %Z")
+        arrive_by_str = datetime.fromtimestamp(arrive_by, tz=zone).strftime("%-I:%M %p %Z")
         return (
-            f"Current travel time is {minutes} min. "
-            f"Leave now to arrive by {arrive_by_str} with a {buffer} min buffer."
+            f"Current travel time is {minutes} min "
+            f"(your target arrive time is {arrive_by_str} with a {buffer} min buffer). "
+            f"Leave now to arrive at {leave_now_arrive_str}!"
         )
 
-    return f"Current travel time is {minutes} min. Leave now!"
+    return f"Current travel time is {minutes} min. Leave now to arrive at {leave_now_arrive_str}!"
