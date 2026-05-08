@@ -1,0 +1,21 @@
+services:
+  web:
+    image: ghcr.io/iltc/travel-time:latest
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - db_data:/app/data
+    env_file: .env
+    restart: unless-stopped
+
+  scheduler:
+    image: ghcr.io/iltc/travel-time:latest
+    command: python -m app.scheduler
+    volumes:
+      - db_data:/app/data
+    env_file: .env
+    restart: unless-stopped
+
+volumes:
+  db_data:

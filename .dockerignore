@@ -1,0 +1,16 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/*.db
+**/*.db-wal
+**/*.db-shm
+.git
+.github
+*.md
+.env
+.env.*
+.vscode
+.idea
+backend/app/static/
+frontend/dist/
