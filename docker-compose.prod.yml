@@ -6,7 +6,11 @@ services:
       - "8000:8000"
     volumes:
       - db_data:/app/data
-    env_file: .env
+    environment:
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      PUSHOVER_TOKEN: ${PUSHOVER_TOKEN}
+      PUSHOVER_USER: ${PUSHOVER_USER}
+      DB_PATH: ${DB_PATH:-/app/data/travel.db}
     restart: unless-stopped
 
   scheduler:
@@ -14,7 +18,11 @@ services:
     command: python -m app.scheduler
     volumes:
       - db_data:/app/data
-    env_file: .env
+    environment:
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      PUSHOVER_TOKEN: ${PUSHOVER_TOKEN}
+      PUSHOVER_USER: ${PUSHOVER_USER}
+      DB_PATH: ${DB_PATH:-/app/data/travel.db}
     restart: unless-stopped
 
 volumes:
