@@ -52,6 +52,7 @@ async def run_check(monitor: Monitor) -> dict | None:
             alert_threshold_minutes=monitor.alert_threshold_minutes,
             arrive_by=monitor.arrive_by,
             buffer_minutes=monitor.buffer_minutes,
+            timezone=get_app_setting("timezone"),
         )
         await send_alert(travel_minutes, message)
         alerted = True

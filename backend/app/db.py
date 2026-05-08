@@ -55,6 +55,7 @@ def _set_wal_mode(dbapi_conn, _):
 _SETTING_DEFAULTS = {
     "checks_enabled": "true",
     "default_location": "",
+    "timezone": "America/New_York",
 }
 
 

@@ -12,9 +12,20 @@ const inputStyle = {
   borderRadius: 4,
 };
 
+const TIMEZONES = [
+  { value: "America/New_York",    label: "Eastern (New York)" },
+  { value: "America/Chicago",     label: "Central (Chicago)" },
+  { value: "America/Denver",      label: "Mountain (Denver)" },
+  { value: "America/Phoenix",     label: "Mountain - Arizona (no DST)" },
+  { value: "America/Los_Angeles", label: "Pacific (Los Angeles)" },
+  { value: "America/Anchorage",   label: "Alaska (Anchorage)" },
+  { value: "Pacific/Honolulu",    label: "Hawaii (Honolulu)" },
+];
+
 export default function GlobalSettings({ settings, onSave }) {
   const checksEnabled = settings.checks_enabled !== "false";
   const defaultLocation = settings.default_location ?? "";
+  const timezone = settings.timezone ?? "America/New_York";
 
   const handleToggle = () => {
     onSave({ checks_enabled: checksEnabled ? "false" : "true" });
@@ -25,6 +36,10 @@ export default function GlobalSettings({ settings, onSave }) {
     if (val !== defaultLocation) {
       onSave({ default_location: val });
     }
+  };
+
+  const handleTimezoneChange = (e) => {
+    onSave({ timezone: e.target.value });
   };
 
   return (
@@ -50,6 +65,15 @@ export default function GlobalSettings({ settings, onSave }) {
           onBlur={handleLocationBlur}
           placeholder="e.g. Edinburgh Waverley Station"
         />
+      </div>
+
+      <div style={fieldStyle}>
+        <label>Timezone (used in alert messages)</label>
+        <select style={inputStyle} value={timezone} onChange={handleTimezoneChange}>
+          {TIMEZONES.map((tz) => (
+            <option key={tz.value} value={tz.value}>{tz.label}</option>
+          ))}
+        </select>
       </div>
     </div>
   );

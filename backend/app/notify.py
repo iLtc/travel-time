@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -46,9 +48,12 @@ def build_message(travel_minutes: float, mode: str, **kwargs) -> str:
     if mode == "arrive_time":
         arrive_by = kwargs.get("arrive_by")
         buffer = kwargs.get("buffer_minutes", 0)
+        tz = kwargs.get("timezone") or "America/New_York"
+        dt = datetime.fromtimestamp(arrive_by, tz=ZoneInfo(tz))
+        arrive_by_str = dt.strftime("%-I:%M %p %Z")
         return (
             f"Current travel time is {minutes} min. "
-            f"Leave now to arrive by {arrive_by} with a {buffer} min buffer."
+            f"Leave now to arrive by {arrive_by_str} with a {buffer} min buffer."
         )
 
     return f"Current travel time is {minutes} min. Leave now!"
