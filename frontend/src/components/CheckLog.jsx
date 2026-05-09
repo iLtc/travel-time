@@ -19,8 +19,15 @@ function formatTime(unix) {
   return new Date(unix * 1000).toLocaleString();
 }
 
-export default function CheckLog({ checks, onClear }) {
+function formatLeaveIn(value) {
+  if (value == null) return "—";
+  return Math.round(value);
+}
+
+export default function CheckLog({ checks, monitorMode, onClear }) {
   if (!checks.length) return <p>No checks yet.</p>;
+
+  const showLeaveIn = monitorMode === "arrive_time";
 
   return (
     <>
@@ -33,6 +40,7 @@ export default function CheckLog({ checks, onClear }) {
           <tr>
             <th style={thStyle}>Time</th>
             <th style={thStyle}>Travel (min)</th>
+            {showLeaveIn ? <th style={thStyle}>Leave in (min)</th> : null}
             <th style={thStyle}>Alerted</th>
           </tr>
         </thead>
@@ -41,6 +49,7 @@ export default function CheckLog({ checks, onClear }) {
             <tr key={c.id}>
               <td style={tdStyle}>{formatTime(c.checked_at)}</td>
               <td style={tdStyle}>{Math.round(c.travel_minutes)}</td>
+              {showLeaveIn ? <td style={tdStyle}>{formatLeaveIn(c.minutes_until_leave)}</td> : null}
               <td style={tdStyle}>{c.alerted ? "Yes" : "No"}</td>
             </tr>
           ))}

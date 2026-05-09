@@ -130,7 +130,7 @@ export default function App() {
           <button onClick={handleTrigger} disabled={triggering} style={{ marginBottom: "1rem" }}>
             {triggering ? "Checking…" : "Check Now"}
           </button>
-          <CheckLog checks={checks} onClear={handleClear} />
+          <CheckLog checks={checks} monitorMode={selectedMonitor.mode} onClear={handleClear} />
         </>
       )}
     </div>

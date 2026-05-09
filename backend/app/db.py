@@ -2,7 +2,7 @@ import time
 import os
 from typing import Optional
 
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlmodel import Field, Session, SQLModel, create_engine, col, select, delete
 
 DB_PATH = os.getenv("DB_PATH", "/app/data/travel.db")
@@ -38,6 +38,7 @@ class CheckLog(SQLModel, table=True):
     checked_at: int                     # unix timestamp
     travel_minutes: float
     alerted: bool = False
+    minutes_until_leave: Optional[float] = None  # arrive_time only; None otherwise
 
 
 # ---------------------------------------------------------------------------
@@ -59,8 +60,20 @@ _SETTING_DEFAULTS = {
 }
 
 
+def _migrate_check_log_columns() -> None:
+    """SQLite: add columns missing from older DBs (create_all does not alter tables)."""
+    with engine.begin() as conn:
+        rows = conn.execute(text("PRAGMA table_info(check_log)")).fetchall()
+        if not rows:
+            return
+        names = {row[1] for row in rows}
+        if "minutes_until_leave" not in names:
+            conn.execute(text("ALTER TABLE check_log ADD COLUMN minutes_until_leave REAL"))
+
+
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
+    _migrate_check_log_columns()
     with Session(engine) as session:
         for key, value in _SETTING_DEFAULTS.items():
             if not session.get(AppSettings, key):
@@ -120,13 +133,19 @@ def delete_monitor(id: int) -> bool:
 # Check log
 # ---------------------------------------------------------------------------
 
-def append_check_log(monitor_id: int, travel_minutes: float, alerted: bool) -> None:
+def append_check_log(
+    monitor_id: int,
+    travel_minutes: float,
+    alerted: bool,
+    minutes_until_leave: float | None = None,
+) -> None:
     with Session(engine) as session:
         session.add(CheckLog(
             monitor_id=monitor_id,
             checked_at=int(time.time()),
             travel_minutes=travel_minutes,
             alerted=alerted,
+            minutes_until_leave=minutes_until_leave,
         ))
         session.commit()
 
