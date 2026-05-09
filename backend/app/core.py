@@ -23,19 +23,23 @@ def should_alert(monitor: Monitor, travel_minutes: float, *, now: float | None =
     return False
 
 
-async def run_check(monitor: Monitor) -> dict | None:
+async def run_check(monitor: Monitor, *, force: bool = False) -> dict | None:
     """
     Fetch travel time, evaluate alert condition, send notification if needed,
     and log the result.
 
     Returns a dict with the result, or None if checks are globally disabled,
     the monitor is inactive, or origin/destination are not configured.
-    """
-    if get_app_setting("checks_enabled") == "false":
-        return None
 
-    if not monitor.active:
-        return None
+    If `force` is True, both the global `checks_enabled` toggle and the
+    per-monitor `active` flag are bypassed (used by manual "Check Now"
+    triggers from the UI).
+    """
+    if not force:
+        if get_app_setting("checks_enabled") == "false":
+            return None
+        if not monitor.active:
+            return None
 
     origin = monitor.origin or get_app_setting("default_location") or ""
     destination = monitor.destination

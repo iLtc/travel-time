@@ -141,9 +141,9 @@ async def trigger_check(id: int):
     monitor = get_monitor(id)
     if not monitor:
         raise HTTPException(status_code=404, detail="Monitor not found")
-    result = await run_check(monitor)
+    result = await run_check(monitor, force=True)
     if result is None:
-        return {"error": "Monitor inactive or origin/destination not configured."}
+        return {"error": "Origin/destination not configured."}
     return result
 
 
