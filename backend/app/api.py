@@ -49,7 +49,7 @@ class MonitorCreate(BaseModel):
     origin: Optional[str] = ""
     destination: Optional[str] = ""
     active: Optional[bool] = False
-    mode: Optional[str] = "travel_time"
+    mode: Optional[str] = "arrive_time"
     alert_threshold_minutes: Optional[int] = None
     arrive_by: Optional[int] = None
     buffer_minutes: Optional[int] = None

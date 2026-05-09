@@ -32,7 +32,7 @@ export default function MonitorForm({ monitor, onSave, onDelete }) {
     origin: "",
     destination: "",
     active: false,
-    mode: "travel_time",
+    mode: "arrive_time",
     alert_threshold_minutes: "",
     arrive_by: "",
     buffer_minutes: "",
