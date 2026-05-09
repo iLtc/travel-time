@@ -2,17 +2,17 @@
 
 Dockerised web app that monitors Google Maps travel time and sends a Pushover notification when you should leave. Two alert modes: **Travel Time** (alert when traffic is light enough) and **Arrive Time** (alert when leaving now means you'd just barely arrive on time).
 
+The UI also has a small **Global Settings** panel for app-wide options: a master "checks enabled" pause toggle, a default origin location used when a monitor's origin is blank, and the timezone used to format times in alert messages.
+
 See `CLAUDE.md` for a deeper architecture / data-model reference.
 
 ## Prerequisites
 
-- A `.env` file at the repo root with:
+- A `.env` file at the repo root. Copy the template and fill in the values:
+  ```bash
+  cp .env.example .env
   ```
-  GOOGLE_MAPS_API_KEY=...
-  PUSHOVER_TOKEN=...
-  PUSHOVER_USER=...
-  DB_PATH=/app/data/travel.db
-  ```
+  Required keys: `GOOGLE_MAPS_API_KEY`, `PUSHOVER_TOKEN`, `PUSHOVER_USER`, `DB_PATH`.
 - For local dev: [`uv`](https://docs.astral.sh/uv/) and Node.js 20+.
 - For deployment: Docker + Docker Compose.
 
